@@ -5,8 +5,8 @@ import(
     "net/http"
     "html/template"
     "sync/atomic"
-	// "ServerHTTP/internal/database"
 	"ServerHTTP/internal/database"
+	"log"
 )
 
 type Page struct {
@@ -19,7 +19,7 @@ type ApiConfig struct {
 }
 
 
-func root(w http.ResponseWriter, req *http.Request){
+func root(w http.ResponseWriter, r *http.Request){
     p := &Page{
         Title: "This is the start",
     }
@@ -28,7 +28,7 @@ func root(w http.ResponseWriter, req *http.Request){
     t.Execute(w, p)
 }
 
-func assets(w http.ResponseWriter, req *http.Request) {
+func assets(w http.ResponseWriter, r *http.Request) {
     p := &Page{
         Title: "Assets",
     }
@@ -36,14 +36,24 @@ func assets(w http.ResponseWriter, req *http.Request) {
     t.Execute(w, p)
 }
 
-func health(w http.ResponseWriter, req *http.Request) {
+func health(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "text/plain; charset=utf-8")
     fmt.Fprintf(w, "OK")
 }
 
-func (cfg *ApiConfig) reset(w http.ResponseWriter, req *http.Request) {
-	cfg.FileserverHits.Store(0)
-	fmt.Fprintf(w, "")
+func (cfg *ApiConfig) reset(w http.ResponseWriter, r *http.Request) {
+
+	err := cfg.Query.WipeUsers(r.Context())
+
+	if err != nil {
+		log.Printf("An error occurred when trying to delete the users. %v", err)
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	log.Printf("The users in the database have been deleted.")
+	
 }
 
 func (cfg *ApiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
@@ -52,7 +62,7 @@ func (cfg *ApiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
         	next.ServeHTTP(w, r)})
 }
 
-func (cfg *ApiConfig) metrics(w http.ResponseWriter, req *http.Request) {
+func (cfg *ApiConfig) metrics(w http.ResponseWriter, r *http.Request) {
 	template := `
 <html>
   <body>
@@ -76,7 +86,7 @@ func InitMuxHandlers(m *http.ServeMux, cfg *ApiConfig) {
 	m.HandleFunc("GET /admin/metrics", cfg.metrics)
 
 	//Api Routes
-	m.HandleFunc("POST /api/users", cfg.createUser)
 	m.HandleFunc("GET /api/healthz", health)
-	m.HandleFunc("POST /api/validate_chirp", validateChirp)
+	m.HandleFunc("POST /api/users", cfg.createUser)
+	m.HandleFunc("POST /api/chirps", cfg.createChirp)
 }

@@ -2,15 +2,9 @@ package routes
 
 import (
 	"net/http"
-	"fmt"
 	"encoding/json"
 	"log"
 )
-
-
-type jsonUser struct {
-	Email string `json:"email"`
-}
 
 func respondWithError(w http.ResponseWriter, code int, message string) {
     w.WriteHeader(code)
@@ -28,8 +22,10 @@ func (cfg *ApiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
-
-	if decoder.Decode(&params) != nil {
+	err := decoder.Decode(&params)
+	
+	if err != nil {
+		log.Printf("Error on decoder json %s", err)
 		respondWithError(w, http.StatusBadRequest, "Invalid request body")
 	    return
 	}
@@ -37,41 +33,38 @@ func (cfg *ApiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 	exist, err := cfg.Query.ExistUser(r.Context(), params.Email)
 
 	if err != nil {
-		log.Printf("Error on create user %w", err)
+		log.Printf("Error on create user %s", err)
 		respondWithError(w, http.StatusInternalServerError, "An error has occurred")
 		return
 	}
 
 	if exist {
+		log.Printf("The email %s has already taken", params.Email)
 		respondWithError(w, http.StatusConflict, "The email already exist")
 		return
 	}
 	
-	if err != nil {
-		log.Printf("Error on create user %w", err)
-		respondWithError(w, http.StatusInternalServerError, "An error has occurred")
-		return
-	}
-
 	payload, err := cfg.Query.CreateUser(r.Context(), params.Email)
 
 	if err != nil {
-		log.Printf("Error on create user %w", err)
+		log.Printf("Error on create user %s", err)
 		respondWithError(w, http.StatusInternalServerError, "An error has occurred")
 		return
 	}
-	
-	w.WriteHeader(http.StatusCreated)	
-	w.Header().Set("Content-Type", "application/josn")
 
 	// From struct to json
 	data, err := json.Marshal(payload)
+
 	if err != nil {
-		log.Printf("Error on create user %w", err)
+		log.Printf("Error on create user %s", err)
 		respondWithError(w, http.StatusInternalServerError, "An error has occurred")
 		return
 	}
 
-	fmt.Fprintf(w, string(data))
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	w.Write(data)
+	
+	log.Printf("Success! the user %s has been created", payload.ID)
 }
 
