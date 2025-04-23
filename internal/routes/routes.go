@@ -5,6 +5,8 @@ import(
     "net/http"
     "html/template"
     "sync/atomic"
+	// "ServerHTTP/internal/database"
+	"ServerHTTP/internal/database"
 )
 
 type Page struct {
@@ -13,6 +15,7 @@ type Page struct {
 
 type ApiConfig struct {
     FileserverHits atomic.Int32
+    Query *database.Queries
 }
 
 
@@ -66,11 +69,14 @@ func InitMuxHandlers(m *http.ServeMux, cfg *ApiConfig) {
 	// Static files
 	staticFiles := http.FileServer(http.Dir("./app"))
 	wrappedFileServer := cfg.middlewareMetricsInc(http.StripPrefix("/app", staticFiles))
-
 	m.Handle("/app/", wrappedFileServer)
-
-	m.HandleFunc("GET /admin/metrics", cfg.metrics)
-	m.HandleFunc("GET /api/healthz", health)
+	
+	//Admin Routes
 	m.HandleFunc("POST /admin/reset", cfg.reset)
+	m.HandleFunc("GET /admin/metrics", cfg.metrics)
+
+	//Api Routes
+	m.HandleFunc("POST /api/users", cfg.createUser)
+	m.HandleFunc("GET /api/healthz", health)
 	m.HandleFunc("POST /api/validate_chirp", validateChirp)
 }
