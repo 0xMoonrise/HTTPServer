@@ -87,6 +87,8 @@ func InitMuxHandlers(m *http.ServeMux, cfg *ApiConfig) {
 
 	//Api Routes
 	m.HandleFunc("GET /api/healthz", health)
+	m.HandleFunc("GET /api/chirps", cfg.getChirps)
+	m.HandleFunc("GET /api/chirps/{uuid}", cfg.getChirpPath)
 	m.HandleFunc("POST /api/users", cfg.createUser)
 	m.HandleFunc("POST /api/chirps", cfg.createChirp)
 }

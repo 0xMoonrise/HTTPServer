@@ -12,6 +12,9 @@ RETURNING *;
 
 SELECT EXISTS(SELECT 1 FROM users WHERE email = $1);
 
+-- name: ExistUserById :one
+SELECT EXISTS(SELECT 1 FROM users WHERE id = $1);
+
 -- name: WipeUsers :exec
 DELETE FROM users;
 
@@ -27,3 +30,6 @@ VALUES (
     $2
 )
 RETURNING *;
+
+-- name: GetChirps :many
+SELECT * FROM chirp;

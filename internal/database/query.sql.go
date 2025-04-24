@@ -78,6 +78,50 @@ func (q *Queries) ExistUser(ctx context.Context, email string) (bool, error) {
 	return exists, err
 }
 
+const existUserById = `-- name: ExistUserById :one
+SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)
+`
+
+func (q *Queries) ExistUserById(ctx context.Context, id uuid.UUID) (bool, error) {
+	row := q.db.QueryRowContext(ctx, existUserById, id)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const getChirps = `-- name: GetChirps :many
+SELECT id, created_at, updated_at, body, user_id FROM chirp
+`
+
+func (q *Queries) GetChirps(ctx context.Context) ([]Chirp, error) {
+	rows, err := q.db.QueryContext(ctx, getChirps)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Chirp
+	for rows.Next() {
+		var i Chirp
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Body,
+			&i.UserID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const wipeUsers = `-- name: WipeUsers :exec
 DELETE FROM users
 `
