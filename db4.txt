@@ -1,2 +1,0 @@
-mostrar no control mayor a 21 y mayor num control 0003
-pi(email)(sigma(n_control>0003, edad > 21)(alumnos)
