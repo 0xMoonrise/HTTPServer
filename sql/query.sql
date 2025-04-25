@@ -9,11 +9,13 @@ VALUES (
 RETURNING *;
 
 -- name: ExistUser :one
-
 SELECT EXISTS(SELECT 1 FROM users WHERE email = $1);
 
 -- name: ExistUserById :one
 SELECT EXISTS(SELECT 1 FROM users WHERE id = $1);
+
+-- name: ExistChirpById :one
+SELECT EXISTS(SELECT 1 FROM chirp WHERE id = $1);
 
 -- name: WipeUsers :exec
 DELETE FROM users;
@@ -33,3 +35,13 @@ RETURNING *;
 
 -- name: GetChirps :many
 SELECT * FROM chirp;
+
+-- name: GetChirpById :one
+SELECT 
+	id, 
+	created_at, 
+	updated_at, 
+	body, 
+	user_id 
+FROM chirp 
+WHERE id = $1; 

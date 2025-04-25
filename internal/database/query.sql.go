@@ -66,8 +66,18 @@ func (q *Queries) CreateUser(ctx context.Context, email string) (User, error) {
 	return i, err
 }
 
-const existUser = `-- name: ExistUser :one
+const existChirpById = `-- name: ExistChirpById :one
+SELECT EXISTS(SELECT 1 FROM chirp WHERE id = $1)
+`
 
+func (q *Queries) ExistChirpById(ctx context.Context, id uuid.UUID) (bool, error) {
+	row := q.db.QueryRowContext(ctx, existChirpById, id)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const existUser = `-- name: ExistUser :one
 SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)
 `
 
@@ -87,6 +97,30 @@ func (q *Queries) ExistUserById(ctx context.Context, id uuid.UUID) (bool, error)
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
+}
+
+const getChirpById = `-- name: GetChirpById :one
+SELECT 
+	id, 
+	created_at, 
+	updated_at, 
+	body, 
+	user_id 
+FROM chirp 
+WHERE id = $1
+`
+
+func (q *Queries) GetChirpById(ctx context.Context, id uuid.UUID) (Chirp, error) {
+	row := q.db.QueryRowContext(ctx, getChirpById, id)
+	var i Chirp
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Body,
+		&i.UserID,
+	)
+	return i, err
 }
 
 const getChirps = `-- name: GetChirps :many

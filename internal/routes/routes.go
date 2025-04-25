@@ -9,15 +9,15 @@ import(
 	"log"
 )
 
-type Page struct {
-    Title, Content string
-}
-
 type ApiConfig struct {
     FileserverHits atomic.Int32
     Query *database.Queries
 }
 
+
+type Page struct {
+    Title, Content string
+}
 
 func root(w http.ResponseWriter, r *http.Request){
     p := &Page{
