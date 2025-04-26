@@ -5,35 +5,13 @@ import (
     "encoding/json"
     "log"
 	"github.com/google/uuid"
-	"errors"
-	"regexp"    
-	// "io"
-	db "ServerHTTP/internal/database"
 )
 
-
-func validateChirp(chirp string) (string, error) {
-
-	if len(chirp) >= 140 {
-	    return "", errors.New("Error, the length is not allowed.")
-	}
-
-	re := regexp.MustCompile(`(?i)(\bkerfuffle|sharbert|fornax\b)`)
-	censured := re.ReplaceAllString(chirp, "****")
-
-	return censured, nil	
-
-}
 
 func (cfg *ApiConfig) createChirp(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	type params struct {
-		UserID uuid.UUID `json:"user_id"`
-		Body   string	 `json:"body"`
-	}
-
-	p := params{}
+	p := Chirp{}
 	err := json.NewDecoder(r.Body).Decode(&p)
 
 	if err != nil{
@@ -67,10 +45,7 @@ func (cfg *ApiConfig) createChirp(w http.ResponseWriter, r *http.Request) {
 	
 	p.Body = content
 
-	c := db.CreateChirpParams{
-		UserID : p.UserID,
-		Body:    p.Body,
-	}
+	c := toDBChirp(p)
 	
 	payload, err := cfg.Query.CreateChirp(r.Context(), c)
 	data, err := json.Marshal(payload)
@@ -86,5 +61,71 @@ func (cfg *ApiConfig) createChirp(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 
 	log.Printf("Success! the chirp %s has been created", payload.ID)
+
+}
+
+
+func (cfg *ApiConfig) getChirpPath(w http.ResponseWriter, r *http.Request) {
+
+	defer r.Body.Close()
+	
+    id := r.PathValue("uuid")
+    uuid, err := uuid.Parse(id)
+
+    if err != nil {
+        log.Println("Error", err)
+        return
+    }
+
+    exist, err := cfg.Query.ExistChirpById(r.Context(), uuid)
+
+    if err != nil {
+        log.Println("Error fetching the chirp existence:", err)
+        respondWithError(w, http.StatusInternalServerError, "Something went wrong")
+        return
+    }
+
+    if ! exist {
+
+        log.Println("Chirp not found", err)
+        respondWithError(w, http.StatusNotFound, "Chirp not found")
+
+        return
+    }
+
+
+    chirps, err := cfg.Query.GetChirpById(r.Context(), uuid)
+
+    data, err := json.Marshal(chirps)
+
+    if err != nil {
+        log.Printf("An error has occurred decode json", err)
+        respondWithError(w, http.StatusInternalServerError, "Something went wrong")
+        return
+    }
+
+    w.Write(data)
+	responseWithSucceess(w)
+
+    log.Printf("Success! the chirp has been created")
+}
+
+func (cfg *ApiConfig) getChirps(w http.ResponseWriter, r *http.Request) {
+
+    chirps, err := cfg.Query.GetChirps(r.Context())
+	
+    if err != nil {
+        log.Printf("An error has occurred trying to get chirps")
+    }
+
+    chrs, err := json.Marshal(chirps)
+
+	if err != nil {
+		
+		log.Printf("An error occurred when trying to marshal a json")
+		return
+	}
+
+    w.Write(chrs)
 
 }

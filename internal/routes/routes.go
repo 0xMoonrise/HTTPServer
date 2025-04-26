@@ -14,7 +14,6 @@ type ApiConfig struct {
     Query *database.Queries
 }
 
-
 type Page struct {
     Title, Content string
 }
@@ -91,4 +90,5 @@ func InitMuxHandlers(m *http.ServeMux, cfg *ApiConfig) {
 	m.HandleFunc("GET /api/chirps/{uuid}", cfg.getChirpPath)
 	m.HandleFunc("POST /api/users", cfg.createUser)
 	m.HandleFunc("POST /api/chirps", cfg.createChirp)
+	m.HandleFunc("POST /api/login", cfg.login)
 }

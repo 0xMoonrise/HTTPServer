@@ -7,6 +7,7 @@ package database
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -44,19 +45,32 @@ func (q *Queries) CreateChirp(ctx context.Context, arg CreateChirpParams) (Chirp
 }
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (id, created_at, updated_at, email)
+INSERT INTO users (id, created_at, updated_at, email, hashed_password)
 VALUES (
     gen_random_uuid(),
     NOW(),
     NOW(),
-    $1
+    $1,
+    $2
 )
 RETURNING id, created_at, updated_at, email
 `
 
-func (q *Queries) CreateUser(ctx context.Context, email string) (User, error) {
-	row := q.db.QueryRowContext(ctx, createUser, email)
-	var i User
+type CreateUserParams struct {
+	Email          string `json:"email"`
+	HashedPassword string `json:"hashed_password"`
+}
+
+type CreateUserRow struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Email     string    `json:"email"`
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error) {
+	row := q.db.QueryRowContext(ctx, createUser, arg.Email, arg.HashedPassword)
+	var i CreateUserRow
 	err := row.Scan(
 		&i.ID,
 		&i.CreatedAt,
@@ -154,6 +168,50 @@ func (q *Queries) GetChirps(ctx context.Context) ([]Chirp, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const getUserByEmail = `-- name: GetUserByEmail :one
+SELECT
+	id,
+	created_at,
+	updated_at,
+	email
+FROM users
+WHERE email = $1
+`
+
+type GetUserByEmailRow struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Email     string    `json:"email"`
+}
+
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
+	var i GetUserByEmailRow
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Email,
+	)
+	return i, err
+}
+
+const getUserPassword = `-- name: GetUserPassword :one
+
+SELECT
+	hashed_password
+FROM users
+WHERE email = $1
+`
+
+func (q *Queries) GetUserPassword(ctx context.Context, email string) (string, error) {
+	row := q.db.QueryRowContext(ctx, getUserPassword, email)
+	var hashed_password string
+	err := row.Scan(&hashed_password)
+	return hashed_password, err
 }
 
 const wipeUsers = `-- name: WipeUsers :exec
