@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"log"
 	"ServerHTTP/internal/auth"
-	"fmt"
 )
 
 
@@ -17,9 +16,6 @@ func (cfg *ApiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	params := User{}
 	err := decoder.Decode(&params)
-
-	hashedPassword := auth.HashPassword("password")
-	fmt.Println(hashedPassword)
 	
 	if err != nil {
 		log.Printf("Error on decoder json %s", err)
@@ -41,7 +37,7 @@ func (cfg *ApiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	password, err := HashPassword(params.HashedPassword) 
+	password, err := auth.HashPassword(params.HashedPassword) 
 	params.HashedPassword = password
 
 	if err != nil {
@@ -106,7 +102,7 @@ func (cfg *ApiConfig) login(w http.ResponseWriter, r *http.Request) {
 		return	
 	}
 
-	if ! CheckPasswordHash(params.Password, passwordHashed) {
+	if ! auth.CheckPasswordHash(params.Password, passwordHashed) {
 		log.Println("Attempt to login unsuccessful")
 		respondWithError(w, http.StatusUnauthorized, "user or password not found")
 		return
