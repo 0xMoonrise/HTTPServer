@@ -1,13 +1,28 @@
 package auth
 
 import (
-	"golang.org/x/crypto/bcrypt"
-	"time"
-	"github.com/google/uuid"
 	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
+	"github.com/google/uuid"
+	"net/http"
+	"time"
 	"log"
 	"fmt"
+	"strings"
 )
+
+
+func GetBearerToken(headers http.Header) (string, error) {
+
+	header := headers.Get("Authorization")
+
+	if header == "" {
+		return "", fmt.Errorf("The header was not found")
+	}
+	
+	return strings.Split(header, " ")[1], nil
+
+}
 
 
 func HashPassword(password string) (string, error) {

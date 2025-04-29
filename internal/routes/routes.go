@@ -4,7 +4,7 @@ import(
     "fmt"
     "net/http"
     "html/template"
-    "sync/atomic"
+	"sync/atomic"
 	"ServerHTTP/internal/database"
 	"log"
 )
@@ -12,7 +12,9 @@ import(
 type ApiConfig struct {
     FileserverHits atomic.Int32
     Query *database.Queries
+	Secret string
 }
+
 
 type Page struct {
     Title, Content string

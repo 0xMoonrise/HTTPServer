@@ -7,6 +7,7 @@ import (
 	"errors"
 	"github.com/google/uuid"
 	"log"
+	"time"
 	db "ServerHTTP/internal/database"
 )
 
@@ -16,10 +17,18 @@ type Chirp struct {
 }
 
 type User struct {
-	Email       	string `json:"email"`
-	HashedPassword  string `json:"password"`
+	Email       		string		`json:"email"`
+	HashedPassword  	string		`json:"password"`
+	ExpiresInSeconds	time.Time	`json:"expires_in_seconds"`
 }
 
+type UserRes struct {
+	UserID 		uuid.UUID 		`json:"id"`
+	CreatedAt	time.Time		`json:"created_at"`
+	UpdatedAt	time.Time 		`json:"updated_at"`
+	Email		string			`json:"email"`
+	Token		string			`json:"token"`		
+}
 
 func validateChirp(chirp string) (string, error) {
 
@@ -44,7 +53,6 @@ func respondWithError(w http.ResponseWriter, code int, message string) {
 
 func responseWithSucceess(w http.ResponseWriter) {
 
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)	
 	log.Printf("Success! chirps requested")
 
@@ -54,6 +62,16 @@ func toDBChirp(p Chirp) db.CreateChirpParams {
 	return db.CreateChirpParams{
 	    UserID : p.UserID,
 	    Body:    p.Body,
+	}
+}
+
+func toUserRes(u db.GetUserByEmailRow) UserRes {
+	return UserRes{
+		UserID: u.ID,
+		CreatedAt: u.CreatedAt,
+		UpdatedAt: u.UpdatedAt,
+		Email: u.Email,
+		Token: "",
 	}
 }
 

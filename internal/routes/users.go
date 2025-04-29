@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"encoding/json"
 	"log"
+	"time"
 	"ServerHTTP/internal/auth"
 )
 
@@ -78,10 +79,14 @@ func (cfg *ApiConfig) login(w http.ResponseWriter, r *http.Request) {
 
 	decoder := json.NewDecoder(r.Body)
 	params  := struct {
-		Email 	 string `json:"email"`
-		Password string `json:"password"`
-	}{}
-	
+		Email 	 		string 			`json:"email"`
+		Password 		string 			`json:"password"`
+		ExpiresIn		float64			`json:"expires_in_seconds,omitempty"`
+	}{
+		ExpiresIn: 		2*60*60,
+	}
+
+	// log.Println(params.ExpInSeconds)
 	err := decoder.Decode(&params)
 
 	if err != nil {
@@ -90,6 +95,15 @@ func (cfg *ApiConfig) login(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, "Something went wrong")
 
 		return
+	}
+
+	exist, err := cfg.Query.ExistUser(r.Context(), params.Email)
+
+	
+	if ! exist {
+		log.Println("The user attempt to login")
+		respondWithError(w, http.StatusUnauthorized, "user or password not found")
+		return 
 	}
 
 	//Get the password from db and compare the hash
@@ -108,7 +122,7 @@ func (cfg *ApiConfig) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	payload, err := cfg.Query.GetUserByEmail(r.Context(), params.Email)
+	userDB, err := cfg.Query.GetUserByEmail(r.Context(), params.Email)
 
 	if err != nil {
 		log.Println("Error tryign to fetch the data")
@@ -116,6 +130,17 @@ func (cfg *ApiConfig) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	payload := toUserRes(userDB)
+	// func MakeJWT(userID uuid.UUID, tokenSecret string, expiresIn time.Duration) (string, error)	
+	expireTime := time.Duration(params.ExpiresIn) * time.Second 
+	token, err := auth.MakeJWT(userDB.ID, cfg.Secret, expireTime)
+
+	if err != nil {
+		log.Println("Error trying to making the JWT")
+		respondWithError(w, http.StatusInternalServerError, "Something went wrong")
+	}
+	// payload.token = Make
+	payload.Token = token
 	data, err := json.Marshal(payload)
 
 	if err != nil {
@@ -123,9 +148,9 @@ func (cfg *ApiConfig) login(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, "Something went wrong")
 		return
 	}
-	
+
+	w.Header().Set("Content-Type", "application/json")
 	w.Write(data)
-	responseWithSucceess(w)
+
 	log.Printf("Success login")
-	
 }

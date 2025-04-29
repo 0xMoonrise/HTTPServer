@@ -19,8 +19,10 @@ func main() {
 	const port = "8080"
 
 	godotenv.Load()
+
 	dbURL := os.Getenv("DB_URL")
-	
+	SIGN  := os.Getenv("SIGNER")
+		
 	mux := http.NewServeMux()
 
 	if dbURL == "" {
@@ -37,12 +39,13 @@ func main() {
 	cfg := routes.ApiConfig {
 	    FileserverHits: atomic.Int32{},
 	    Query: dbQueries,
+	    Secret: SIGN,
 	}
 	
 	routes.InitMuxHandlers(mux, &cfg)
 	
 	server := &http.Server{
-		Addr:    ":" + port,
+		Addr:    "127.0.0.1:" + port,
 		Handler: mux,
 	}
 	

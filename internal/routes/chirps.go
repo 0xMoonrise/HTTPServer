@@ -5,25 +5,29 @@ import (
     "encoding/json"
     "log"
 	"github.com/google/uuid"
+	"ServerHTTP/internal/auth"
 )
 
 
 func (cfg *ApiConfig) createChirp(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	p := Chirp{}
-	err := json.NewDecoder(r.Body).Decode(&p)
+	auth_header, err := auth.GetBearerToken(r.Header)
 
-	if err != nil{
-	    log.Printf("Error on decoder json %v", err)
-	    respondWithError(w, http.StatusBadRequest, "Invalid request body")
-
-	    return
+	if err != nil {
+		log.Println(err)
+		return
 	}
 	
-	log.Printf("%v\n", p.UserID)
-    
-	exist, _ := cfg.Query.ExistUserById(r.Context(), p.UserID)
+	id, err := auth.ValidateJWT(auth_header, cfg.Secret) 
+
+	if err != nil {
+		log.Println(err)
+		respondWithError(w, http.StatusUnauthorized, "error")
+		return
+	}
+	
+	exist, _ := cfg.Query.ExistUserById(r.Context(), id)
 
 	if ! exist {
 	
@@ -32,8 +36,19 @@ func (cfg *ApiConfig) createChirp(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
+
+	log.Printf("The user %v create a chirp", id)
 	
-	content, err := validateChirp(p.Body)
+	payload := struct{
+		UserID  uuid.UUID 	`json:"user_id"`
+		Body 	string		`json:"body"`
+	}{
+		UserID: id,
+	}
+
+	decoder := json.NewDecoder(r.Body)	
+	decoder.Decode(&payload)
+	payload.Body, err = validateChirp(payload.Body)
 
 	if err != nil {
 
@@ -42,25 +57,14 @@ func (cfg *ApiConfig) createChirp(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
-	
-	p.Body = content
 
-	c := toDBChirp(p)
-	
-	payload, err := cfg.Query.CreateChirp(r.Context(), c)
 	data, err := json.Marshal(payload)
-
-	if err != nil {
-	        log.Printf("Error on create user %s", err)
-	        respondWithError(w, http.StatusInternalServerError, "An error has occurred")
-	        return
-	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	w.Write(data)
 
-	log.Printf("Success! the chirp %s has been created", payload.ID)
+	log.Printf("Success! the chirp has been created")
 
 }
 

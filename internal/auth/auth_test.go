@@ -3,13 +3,46 @@ package auth
 import (
     "testing"
     "time"
-    // "fmt"
-
-    // "github.com/golang-jwt/jwt/v5"
+	"net/http"
     "github.com/google/uuid"
 )
 
-func TestMakeJWT(t *testing.T) {
+func TestGetBearerToken(t *testing.T) {
+    t.Run("[Test 1] Valid Bearer header", func(t *testing.T) {
+        headers := http.Header{}
+        headers.Set("Bearer", "some-token-value")
+
+        token, err := GetBearerToken(headers)
+
+        if err != nil {
+            t.Fatalf("expected no error, got %v", err)
+        }
+
+        if token != "some-token-value" {
+            t.Fatalf("expected token to be 'some-token-value', got %v", token)
+        }
+
+        t.Log("[Test 1] status: SUCCESS")
+    })
+
+    t.Run("[Test 2] Missing Bearer header", func(t *testing.T) {
+        headers := http.Header{} // No header set
+
+        token, err := GetBearerToken(headers)
+
+        if err == nil {
+            t.Fatalf("expected an error for missing Bearer header, got nil")
+        }
+
+        if token != "" {
+            t.Fatalf("expected token to be empty string, got %v", token)
+        }
+
+        t.Log("[Test 2] status: SUCCESS")
+    })
+}
+
+func TestJWT(t *testing.T) {
 
 	t.Run("[Test 1] MakeJWT function is testing:", func(t *testing.T) {
 
