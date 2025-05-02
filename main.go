@@ -11,20 +11,41 @@ import(
 	"ServerHTTP/internal/database"
 	"database/sql"
 	"github.com/joho/godotenv"
-	
+	"time"
+	"net"
+	// "strings"
 )
 
 
+type Logger struct {
+    handler     http.Handler
+}
+
+func (l *Logger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+    start := time.Now()
+    l.handler.ServeHTTP(w, r)
+
+	remoteHost, _, _ := net.SplitHostPort(r.RemoteAddr)
+	ip := net.ParseIP(remoteHost).To4()
+
+    log.Printf("%s %s %s %s", r.Method, r.URL.Path, ip.String(), time.Since(start))
+}
+
+func NewLogger(handlerToWrap http.Handler) *Logger {
+    return &Logger{handlerToWrap}
+}
+
+
 func main() {
-	const port = "8080"
 
 	godotenv.Load()
 
 	dbURL := os.Getenv("DB_URL")
 	SIGN  := os.Getenv("SIGNER")
-		
+	addr  := os.Getenv("ADDR")
+	
 	mux := http.NewServeMux()
-
+	
 	if dbURL == "" {
 	    log.Fatal("DB_URL must be set")
 	}
@@ -43,13 +64,14 @@ func main() {
 	}
 	
 	routes.InitMuxHandlers(mux, &cfg)
-	
-	server := &http.Server{
-		Addr:    "127.0.0.1:" + port,
-		Handler: mux,
-	}
-	
-	log.Printf("Serving files on port: %s\n", port)
-	log.Fatal(server.ListenAndServe())
+	wrappedMux := NewLogger(mux)	
 
+	server := &http.Server{
+		Addr: 	 addr,
+		Handler: wrappedMux,
+	}
+
+	log.Printf("Server is running... %s", addr)
+		
+	server.ListenAndServe()	
 }

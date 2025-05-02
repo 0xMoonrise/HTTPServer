@@ -23,11 +23,12 @@ type User struct {
 }
 
 type UserRes struct {
-	UserID 		uuid.UUID 		`json:"id"`
-	CreatedAt	time.Time		`json:"created_at"`
-	UpdatedAt	time.Time 		`json:"updated_at"`
-	Email		string			`json:"email"`
-	Token		string			`json:"token"`		
+	UserID 			uuid.UUID 		`json:"id"`
+	CreatedAt 		time.Time		`json:"created_at"`
+	UpdatedAt 		time.Time 		`json:"updated_at"`
+	Email 			string			`json:"email"`
+	Token 			string			`json:"token"`		
+	RefreshToken 	string 			`josn:"refresh_token"`
 }
 
 func validateChirp(chirp string) (string, error) {
@@ -72,6 +73,7 @@ func toUserRes(u db.GetUserByEmailRow) UserRes {
 		UpdatedAt: u.UpdatedAt,
 		Email: u.Email,
 		Token: "",
+		RefreshToken:"" ,
 	}
 }
 

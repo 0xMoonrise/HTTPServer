@@ -62,3 +62,14 @@ SELECT
 	email
 FROM users
 WHERE email = $1;
+
+-- name: CreateRefreshToken :exec
+INSERT INTO token (token, created_at, updated_at, user_id, expire_at, revoke_at)
+VALUES (
+    $1,
+    NOW(),
+    NOW(),
+	$2,
+    $3,
+    $4
+);

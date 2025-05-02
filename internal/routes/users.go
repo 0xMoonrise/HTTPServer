@@ -78,10 +78,12 @@ func (cfg *ApiConfig) login(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	decoder := json.NewDecoder(r.Body)
+
 	params  := struct {
-		Email 	 		string 			`json:"email"`
-		Password 		string 			`json:"password"`
-		ExpiresIn		float64			`json:"expires_in_seconds,omitempty"`
+		Email 	 		string 	`json:"email"`
+		Password 		string 	`json:"password"`
+		ExpiresIn		float64 `json:"expires_in_seconds,omitempty"`
+		RefreshToken 	string 	`json:"refresh_token"`		
 	}{
 		ExpiresIn: 		2*60*60,
 	}
@@ -133,6 +135,7 @@ func (cfg *ApiConfig) login(w http.ResponseWriter, r *http.Request) {
 	payload := toUserRes(userDB)
 	// func MakeJWT(userID uuid.UUID, tokenSecret string, expiresIn time.Duration) (string, error)	
 	expireTime := time.Duration(params.ExpiresIn) * time.Second 
+
 	token, err := auth.MakeJWT(userDB.ID, cfg.Secret, expireTime)
 
 	if err != nil {
@@ -140,12 +143,23 @@ func (cfg *ApiConfig) login(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, "Something went wrong")
 	}
 	// payload.token = Make
+
 	payload.Token = token
+	rToken, err := auth.MakeRefreshToken()
+
+	if err != nil {
+		log.Println(err)
+		return 
+	}
+
+	payload.RefreshToken = rToken
 	data, err := json.Marshal(payload)
 
 	if err != nil {
+
 		log.Println("Eror trying to convert to json", err)
 		respondWithError(w, http.StatusInternalServerError, "Something went wrong")
+
 		return
 	}
 

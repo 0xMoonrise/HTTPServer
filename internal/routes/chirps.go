@@ -49,7 +49,7 @@ func (cfg *ApiConfig) createChirp(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)	
 	decoder.Decode(&payload)
 	payload.Body, err = validateChirp(payload.Body)
-
+	
 	if err != nil {
 
 		log.Printf("Error on chirp validation: %s", err)
@@ -57,6 +57,13 @@ func (cfg *ApiConfig) createChirp(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
+
+	cfg.Query.CreateChirp(
+	    r.Context(),
+	    toDBChirp(Chirp{
+	        Body: payload.Body,
+	        UserID: payload.UserID,
+	}))
 
 	data, err := json.Marshal(payload)
 

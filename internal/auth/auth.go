@@ -9,6 +9,8 @@ import (
 	"log"
 	"fmt"
 	"strings"
+	"crypto/rand"
+	"encoding/hex"
 )
 
 
@@ -86,4 +88,16 @@ func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
 	}
 	
 	return id, err
+}
+
+func MakeRefreshToken() (string, error){
+	buffer := make([]byte, 32)
+	n, err := rand.Read(buffer)
+	log.Printf("buffer created %d", n)
+	if err != nil {
+		log.Println("Something went really bad:", err)
+		return "", err
+	}
+	
+	return hex.EncodeToString(buffer), nil	
 }

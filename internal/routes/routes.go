@@ -78,6 +78,7 @@ func (cfg *ApiConfig) metrics(w http.ResponseWriter, r *http.Request) {
 
 func InitMuxHandlers(m *http.ServeMux, cfg *ApiConfig) {
 	// Static files
+	// m = NewLogger(m)
 	staticFiles := http.FileServer(http.Dir("./app"))
 	wrappedFileServer := cfg.middlewareMetricsInc(http.StripPrefix("/app", staticFiles))
 	m.Handle("/app/", wrappedFileServer)
@@ -90,6 +91,7 @@ func InitMuxHandlers(m *http.ServeMux, cfg *ApiConfig) {
 	m.HandleFunc("GET /api/healthz", health)
 	m.HandleFunc("GET /api/chirps", cfg.getChirps)
 	m.HandleFunc("GET /api/chirps/{uuid}", cfg.getChirpPath)
+	m.HandleFunc("POST /api/refresh", cfg.refreshToken)
 	m.HandleFunc("POST /api/users", cfg.createUser)
 	m.HandleFunc("POST /api/chirps", cfg.createChirp)
 	m.HandleFunc("POST /api/login", cfg.login)
