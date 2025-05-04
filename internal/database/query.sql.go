@@ -7,6 +7,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -57,10 +58,10 @@ VALUES (
 `
 
 type CreateRefreshTokenParams struct {
-	Token    string    `json:"token"`
-	UserID   uuid.UUID `json:"user_id"`
-	ExpireAt time.Time `json:"expire_at"`
-	RevokeAt time.Time `json:"revoke_at"`
+	Token    string       `json:"token"`
+	UserID   uuid.UUID    `json:"user_id"`
+	ExpireAt time.Time    `json:"expire_at"`
+	RevokeAt sql.NullTime `json:"revoke_at"`
 }
 
 func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) error {
@@ -228,6 +229,20 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEm
 	return i, err
 }
 
+const getUserByRefreshToken = `-- name: GetUserByRefreshToken :one
+SELECT 
+	user_id
+FROM token
+WHERE token=$1
+`
+
+func (q *Queries) GetUserByRefreshToken(ctx context.Context, token string) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, getUserByRefreshToken, token)
+	var user_id uuid.UUID
+	err := row.Scan(&user_id)
+	return user_id, err
+}
+
 const getUserPassword = `-- name: GetUserPassword :one
 
 SELECT
@@ -241,6 +256,24 @@ func (q *Queries) GetUserPassword(ctx context.Context, email string) (string, er
 	var hashed_password string
 	err := row.Scan(&hashed_password)
 	return hashed_password, err
+}
+
+const updateRevokeToken = `-- name: UpdateRevokeToken :exec
+UPDATE token
+SET token = $1,
+	revoke_at  = NOW(),
+	updated_at = NOW()
+WHERE user_id = $2
+`
+
+type UpdateRevokeTokenParams struct {
+	Token  string    `json:"token"`
+	UserID uuid.UUID `json:"user_id"`
+}
+
+func (q *Queries) UpdateRevokeToken(ctx context.Context, arg UpdateRevokeTokenParams) error {
+	_, err := q.db.ExecContext(ctx, updateRevokeToken, arg.Token, arg.UserID)
+	return err
 }
 
 const wipeUsers = `-- name: WipeUsers :exec

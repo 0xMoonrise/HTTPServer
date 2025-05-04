@@ -28,8 +28,9 @@ type UserRes struct {
 	UpdatedAt 		time.Time 		`json:"updated_at"`
 	Email 			string			`json:"email"`
 	Token 			string			`json:"token"`		
-	RefreshToken 	string 			`josn:"refresh_token"`
+	Rtoken			string			`json:"refresh_token"`
 }
+
 
 func validateChirp(chirp string) (string, error) {
 
@@ -66,14 +67,14 @@ func toDBChirp(p Chirp) db.CreateChirpParams {
 	}
 }
 
-func toUserRes(u db.GetUserByEmailRow) UserRes {
-	return UserRes{
+func toUserRes(u db.GetUserByEmailRow) *UserRes {
+	return &UserRes{
 		UserID: u.ID,
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
 		Email: u.Email,
 		Token: "",
-		RefreshToken:"" ,
+		Rtoken: "",
 	}
 }
 

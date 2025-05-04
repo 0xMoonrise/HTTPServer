@@ -95,4 +95,5 @@ func InitMuxHandlers(m *http.ServeMux, cfg *ApiConfig) {
 	m.HandleFunc("POST /api/users", cfg.createUser)
 	m.HandleFunc("POST /api/chirps", cfg.createChirp)
 	m.HandleFunc("POST /api/login", cfg.login)
+	m.HandleFunc("POST /api/revoke", cfg.revokeToken)
 }

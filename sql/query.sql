@@ -73,3 +73,16 @@ VALUES (
     $3,
     $4
 );
+
+-- name: GetUserByRefreshToken :one
+SELECT 
+	user_id
+FROM token
+WHERE token=$1;
+
+-- name: UpdateRevokeToken :exec
+UPDATE token
+SET token = $1,
+	revoke_at  = NOW(),
+	updated_at = NOW()
+WHERE user_id = $2;

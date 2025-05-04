@@ -5,6 +5,7 @@
 package database
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,12 +20,12 @@ type Chirp struct {
 }
 
 type Token struct {
-	Token     string    `json:"token"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	UserID    uuid.UUID `json:"user_id"`
-	ExpireAt  time.Time `json:"expire_at"`
-	RevokeAt  time.Time `json:"revoke_at"`
+	Token     string       `json:"token"`
+	CreatedAt time.Time    `json:"created_at"`
+	UpdatedAt time.Time    `json:"updated_at"`
+	UserID    uuid.UUID    `json:"user_id"`
+	ExpireAt  time.Time    `json:"expire_at"`
+	RevokeAt  sql.NullTime `json:"revoke_at"`
 }
 
 type User struct {

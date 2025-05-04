@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 	"ServerHTTP/internal/auth"
+	db "ServerHTTP/internal/database"
 )
 
 
@@ -83,7 +84,7 @@ func (cfg *ApiConfig) login(w http.ResponseWriter, r *http.Request) {
 		Email 	 		string 	`json:"email"`
 		Password 		string 	`json:"password"`
 		ExpiresIn		float64 `json:"expires_in_seconds,omitempty"`
-		RefreshToken 	string 	`json:"refresh_token"`		
+		RefreshToken 	string 	`json:"refresh_token"`
 	}{
 		ExpiresIn: 		2*60*60,
 	}
@@ -133,9 +134,7 @@ func (cfg *ApiConfig) login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	payload := toUserRes(userDB)
-	// func MakeJWT(userID uuid.UUID, tokenSecret string, expiresIn time.Duration) (string, error)	
 	expireTime := time.Duration(params.ExpiresIn) * time.Second 
-
 	token, err := auth.MakeJWT(userDB.ID, cfg.Secret, expireTime)
 
 	if err != nil {
@@ -151,8 +150,15 @@ func (cfg *ApiConfig) login(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return 
 	}
-
-	payload.RefreshToken = rToken
+	
+	payload.Rtoken = rToken
+	// log.Println(payload)
+	cfg.Query.CreateRefreshToken(r.Context(), db.CreateRefreshTokenParams{
+		Token:rToken,
+		UserID:userDB.ID,
+		ExpireAt: time.Now().Add(time.Hour * 24 * 60),
+	})
+	
 	data, err := json.Marshal(payload)
 
 	if err != nil {

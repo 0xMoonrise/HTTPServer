@@ -32,7 +32,7 @@ func (cfg *ApiConfig) createChirp(w http.ResponseWriter, r *http.Request) {
 	if ! exist {
 	
 		log.Printf("Error: The user who tried to create a chirp does not exist")
-		respondWithError(w, http.StatusNotFound, "Error the user does not exist")
+		respondWithError(w, http.StatusUnauthorized, "Access Denied")
 
 		return
 	}
