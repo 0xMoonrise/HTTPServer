@@ -86,3 +86,9 @@ SET token = $1,
 	revoke_at  = NOW(),
 	updated_at = NOW()
 WHERE user_id = $2;
+
+-- name: ChangePassAndEmail :exec
+UPDATE users
+SET hashed_password = $1,
+email = $2
+WHERE id = $3;
