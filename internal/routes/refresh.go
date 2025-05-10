@@ -1,16 +1,15 @@
 package routes
 
-import(
-	"net/http"
+import (
 	"ServerHTTP/internal/auth"
-	"log"
-	"time"
-	"encoding/json"
 	db "ServerHTTP/internal/database"
+	"encoding/json"
+	"log"
+	"net/http"
+	"time"
 )
 
 func (cfg *ApiConfig) refreshToken(w http.ResponseWriter, r *http.Request) {
-	// lookup the refesh token on the database
 	refreshToken, err := auth.GetBearerToken(r.Header)
 
 	if err != nil {
@@ -27,10 +26,9 @@ func (cfg *ApiConfig) refreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-
 	// func MakeJWT(userID uuid.UUID, tokenSecret string, expiresIn time.Duration) (string, error){
 
-	token, err := auth.MakeJWT(id, cfg.Secret, time.Duration(time.Hour))	
+	token, err := auth.MakeJWT(id, cfg.Secret, time.Duration(time.Hour))
 
 	if err != nil {
 		log.Println("Something went wrong creating the JWT")
@@ -38,18 +36,18 @@ func (cfg *ApiConfig) refreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err := json.Marshal(struct{
+	data, err := json.Marshal(struct {
 		Token string `json:"token"`
 	}{
 		Token: token,
 	})
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(data)
 }
 
 func (cfg *ApiConfig) revokeToken(w http.ResponseWriter, r *http.Request) {
-	
+
 	refreshToken, err := auth.GetBearerToken(r.Header)
 
 	if err != nil {
@@ -65,24 +63,22 @@ func (cfg *ApiConfig) revokeToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	newRefreshToken, err := auth.MakeRefreshToken()
-	
+
 	if err != nil {
-	    log.Println(err)
-	    return
+		log.Println(err)
+		return
 	}
 
 	cfg.Query.UpdateRevokeToken(r.Context(), db.UpdateRevokeTokenParams{
-		Token: newRefreshToken,
-		UserID:id,
+		Token:  newRefreshToken,
+		UserID: id,
 	})
 
 	w.WriteHeader(http.StatusNoContent)
 	// cfg.Query.CreateRefreshToken(r.Context(), db.CreateRefreshTokenParams{
-	    // Token:newRefreshToken,
-	    // UserID: id,
-	    // ExpireAt: time.Now().Add(time.Hour * 24 * 60),
+	// Token:newRefreshToken,
+	// UserID: id,
+	// ExpireAt: time.Now().Add(time.Hour * 24 * 60),
 	// })
 
-	
 }
-

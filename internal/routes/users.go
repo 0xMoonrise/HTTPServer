@@ -1,14 +1,13 @@
 package routes
 
 import (
-	"net/http"
-	"encoding/json"
-	"log"
-	"time"
 	"ServerHTTP/internal/auth"
 	db "ServerHTTP/internal/database"
+	"encoding/json"
+	"log"
+	"net/http"
+	"time"
 )
-
 
 func (cfg *ApiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 
@@ -18,13 +17,13 @@ func (cfg *ApiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	params := User{}
 	err := decoder.Decode(&params)
-	
+
 	if err != nil {
 		log.Printf("Error on decoder json %s", err)
 		respondWithError(w, http.StatusBadRequest, "Invalid request body")
-	    return
+		return
 	}
-	
+
 	exist, err := cfg.Query.ExistUser(r.Context(), params.Email)
 
 	if err != nil {
@@ -39,7 +38,7 @@ func (cfg *ApiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	password, err := auth.HashPassword(params.HashedPassword) 
+	password, err := auth.HashPassword(params.HashedPassword)
 	params.HashedPassword = password
 
 	if err != nil {
@@ -55,7 +54,7 @@ func (cfg *ApiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, "An error has occurred")
 		return
 	}
-	
+
 	// From struct to json
 	data, err := json.Marshal(payload)
 
@@ -68,9 +67,9 @@ func (cfg *ApiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	log.Printf("Success! chirps requested")
-	
+
 	w.Write(data)
-	
+
 	log.Printf("Success! the user %s has been created", payload.ID)
 }
 
@@ -80,13 +79,13 @@ func (cfg *ApiConfig) login(w http.ResponseWriter, r *http.Request) {
 
 	decoder := json.NewDecoder(r.Body)
 
-	params  := struct {
-		Email 	 		string 	`json:"email"`
-		Password 		string 	`json:"password"`
-		ExpiresIn		float64 `json:"expires_in_seconds,omitempty"`
-		RefreshToken 	string 	`json:"refresh_token"`
+	params := struct {
+		Email        string  `json:"email"`
+		Password     string  `json:"password"`
+		ExpiresIn    float64 `json:"expires_in_seconds,omitempty"`
+		RefreshToken string  `json:"refresh_token"`
 	}{
-		ExpiresIn: 		2*60*60,
+		ExpiresIn: 2 * 60 * 60,
 	}
 
 	// log.Println(params.ExpInSeconds)
@@ -102,11 +101,10 @@ func (cfg *ApiConfig) login(w http.ResponseWriter, r *http.Request) {
 
 	exist, err := cfg.Query.ExistUser(r.Context(), params.Email)
 
-	
-	if ! exist {
+	if !exist {
 		log.Println("The user attempt to login")
 		respondWithError(w, http.StatusUnauthorized, "user or password not found")
-		return 
+		return
 	}
 
 	//Get the password from db and compare the hash
@@ -116,10 +114,10 @@ func (cfg *ApiConfig) login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println("Error while trying to fetching the user password", err)
 		respondWithError(w, http.StatusInternalServerError, "Soemthing went wrong")
-		return	
+		return
 	}
 
-	if ! auth.CheckPasswordHash(params.Password, passwordHashed) {
+	if !auth.CheckPasswordHash(params.Password, passwordHashed) {
 		log.Println("Attempt to login unsuccessful")
 		respondWithError(w, http.StatusUnauthorized, "user or password not found")
 		return
@@ -134,7 +132,7 @@ func (cfg *ApiConfig) login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	payload := toUserRes(userDB)
-	expireTime := time.Duration(params.ExpiresIn) * time.Second 
+	expireTime := time.Duration(params.ExpiresIn) * time.Second
 	token, err := auth.MakeJWT(userDB.ID, cfg.Secret, expireTime)
 
 	if err != nil {
@@ -148,17 +146,17 @@ func (cfg *ApiConfig) login(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		log.Println(err)
-		return 
+		return
 	}
-	
+
 	payload.Rtoken = rToken
 	// log.Println(payload)
 	cfg.Query.CreateRefreshToken(r.Context(), db.CreateRefreshTokenParams{
-		Token:rToken,
-		UserID:userDB.ID,
+		Token:    rToken,
+		UserID:   userDB.ID,
 		ExpireAt: time.Now().Add(time.Hour * 24 * 60),
 	})
-	
+
 	data, err := json.Marshal(payload)
 
 	if err != nil {

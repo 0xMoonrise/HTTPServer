@@ -1,77 +1,74 @@
-package main 
+package main
 
-import(
-	"net/http"
-	"log"
-	"sync/atomic"
-	_ "github.com/lib/pq"
-	"ServerHTTP/internal/routes"
-	"os"
-	"fmt"
+import (
 	"ServerHTTP/internal/database"
+	"ServerHTTP/internal/routes"
 	"database/sql"
+	"fmt"
 	"github.com/joho/godotenv"
-	"time"
+	_ "github.com/lib/pq"
+	"log"
 	"net"
+	"net/http"
+	"os"
+	"sync/atomic"
+	"time"
 	// "strings"
 )
 
-
 type Logger struct {
-    handler     http.Handler
+	handler http.Handler
 }
 
 func (l *Logger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-    start := time.Now()
-    l.handler.ServeHTTP(w, r)
-
+	start := time.Now()
+	l.handler.ServeHTTP(w, r)
 	remoteHost, _, _ := net.SplitHostPort(r.RemoteAddr)
 	ip := net.ParseIP(remoteHost).To4()
 
-    log.Printf("%s %s %s %s", r.Method, r.URL.Path, ip.String(), time.Since(start))
+	log.Printf("%s %s %s %s", r.Method, r.URL.Path, ip.String(), time.Since(start))
 }
 
 func NewLogger(handlerToWrap http.Handler) *Logger {
-    return &Logger{handlerToWrap}
+	return &Logger{handlerToWrap}
 }
-
 
 func main() {
 
 	godotenv.Load()
 
 	dbURL := os.Getenv("DB_URL")
-	SIGN  := os.Getenv("SIGNER")
-	addr  := os.Getenv("ADDR")
-	
+	SIGN := os.Getenv("SIGNER")
+	addr := os.Getenv("ADDR")
+
 	mux := http.NewServeMux()
-	
+
 	if dbURL == "" {
-	    log.Fatal("DB_URL must be set")
+		log.Fatal("DB_URL must be set")
 	}
 
 	db, err := sql.Open("postgres", dbURL)
-	dbQueries :=  database.New(db)
-			
+	dbQueries := database.New(db)
+
 	if err != nil {
 		fmt.Printf("Error connectin database %s", err)
 	}
 
-	cfg := routes.ApiConfig {
-	    FileserverHits: atomic.Int32{},
-	    Query: dbQueries,
-	    Secret: SIGN,
+	cfg := routes.ApiConfig{
+		FileserverHits: atomic.Int32{},
+		Query:          dbQueries,
+		Secret:         SIGN,
 	}
-	
+
 	routes.InitMuxHandlers(mux, &cfg)
-	wrappedMux := NewLogger(mux)	
+	wrappedMux := NewLogger(mux)
 
 	server := &http.Server{
-		Addr: 	 addr,
+		Addr:    addr,
 		Handler: wrappedMux,
 	}
 
 	log.Printf("Server is running... %s", addr)
-		
-	server.ListenAndServe()	
+
+	log.Fatal(server.ListenAndServe())
 }

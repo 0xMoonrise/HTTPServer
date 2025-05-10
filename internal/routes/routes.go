@@ -1,45 +1,44 @@
 package routes
 
-import(
-    "fmt"
-    "net/http"
-    "html/template"
-	"sync/atomic"
+import (
 	"ServerHTTP/internal/database"
+	"fmt"
+	"html/template"
 	"log"
+	"net/http"
+	"sync/atomic"
 )
 
 type ApiConfig struct {
-    FileserverHits atomic.Int32
-    Query *database.Queries
-	Secret string
+	FileserverHits atomic.Int32
+	Query          *database.Queries
+	Secret         string
 }
-
 
 type Page struct {
-    Title, Content string
+	Title, Content string
 }
 
-func root(w http.ResponseWriter, r *http.Request){
-    p := &Page{
-        Title: "This is the start",
-    }
+func root(w http.ResponseWriter, r *http.Request) {
+	p := &Page{
+		Title: "This is the start",
+	}
 	w.Header().Set("Cache-Control", "no-cache")
-    t := template.Must(template.ParseFiles("./templates/index.html"))
-    t.Execute(w, p)
+	t := template.Must(template.ParseFiles("./templates/index.html"))
+	t.Execute(w, p)
 }
 
 func assets(w http.ResponseWriter, r *http.Request) {
-    p := &Page{
-        Title: "Assets",
-    }
-    t := template.Must(template.ParseFiles("./assets.html"))
-    t.Execute(w, p)
+	p := &Page{
+		Title: "Assets",
+	}
+	t := template.Must(template.ParseFiles("./assets.html"))
+	t.Execute(w, p)
 }
 
 func health(w http.ResponseWriter, r *http.Request) {
-    w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-    fmt.Fprintf(w, "OK")
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	fmt.Fprintf(w, "OK")
 }
 
 func (cfg *ApiConfig) reset(w http.ResponseWriter, r *http.Request) {
@@ -49,18 +48,19 @@ func (cfg *ApiConfig) reset(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("An error occurred when trying to delete the users. %v", err)
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
 	log.Printf("The users in the database have been deleted.")
-	
+
 }
 
 func (cfg *ApiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        	cfg.FileserverHits.Add(1) 
-        	next.ServeHTTP(w, r)})
+		cfg.FileserverHits.Add(1)
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (cfg *ApiConfig) metrics(w http.ResponseWriter, r *http.Request) {
@@ -82,7 +82,7 @@ func InitMuxHandlers(m *http.ServeMux, cfg *ApiConfig) {
 	staticFiles := http.FileServer(http.Dir("./app"))
 	wrappedFileServer := cfg.middlewareMetricsInc(http.StripPrefix("/app", staticFiles))
 	m.Handle("/app/", wrappedFileServer)
-	
+
 	//Admin Routes
 	m.HandleFunc("POST /admin/reset", cfg.reset)
 	m.HandleFunc("GET /admin/metrics", cfg.metrics)
@@ -96,4 +96,6 @@ func InitMuxHandlers(m *http.ServeMux, cfg *ApiConfig) {
 	m.HandleFunc("POST /api/chirps", cfg.createChirp)
 	m.HandleFunc("POST /api/login", cfg.login)
 	m.HandleFunc("POST /api/revoke", cfg.revokeToken)
+	m.HandleFunc("PUT /api/users", cfg.resetPassword)
+	m.HandleFunc("DELETE /api/chirps/{uuid}", cfg.deleteChirp)
 }

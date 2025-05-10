@@ -92,3 +92,9 @@ UPDATE users
 SET hashed_password = $1,
 email = $2
 WHERE id = $3;
+
+-- name: DeleteChirp :exec
+DELETE
+FROM chirp
+WHERE id=$1
+AND   user_id=$2;

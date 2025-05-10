@@ -13,6 +13,24 @@ import (
 	"github.com/google/uuid"
 )
 
+const changePassAndEmail = `-- name: ChangePassAndEmail :exec
+UPDATE users
+SET hashed_password = $1,
+email = $2
+WHERE id = $3
+`
+
+type ChangePassAndEmailParams struct {
+	HashedPassword string    `json:"hashed_password"`
+	Email          string    `json:"email"`
+	ID             uuid.UUID `json:"id"`
+}
+
+func (q *Queries) ChangePassAndEmail(ctx context.Context, arg ChangePassAndEmailParams) error {
+	_, err := q.db.ExecContext(ctx, changePassAndEmail, arg.HashedPassword, arg.Email, arg.ID)
+	return err
+}
+
 const createChirp = `-- name: CreateChirp :one
 
 INSERT INTO chirp (id, created_at, updated_at, body, user_id)
@@ -108,6 +126,23 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateU
 		&i.Email,
 	)
 	return i, err
+}
+
+const deleteChirp = `-- name: DeleteChirp :exec
+DELETE
+FROM chirp
+WHERE id=$1
+AND   user_id=$2
+`
+
+type DeleteChirpParams struct {
+	ID     uuid.UUID `json:"id"`
+	UserID uuid.UUID `json:"user_id"`
+}
+
+func (q *Queries) DeleteChirp(ctx context.Context, arg DeleteChirpParams) error {
+	_, err := q.db.ExecContext(ctx, deleteChirp, arg.ID, arg.UserID)
+	return err
 }
 
 const existChirpById = `-- name: ExistChirpById :one
