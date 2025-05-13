@@ -7,7 +7,7 @@ VALUES (
     $1,
     $2
 )
-RETURNING id, created_at, updated_at, email;
+RETURNING *;
 
 -- name: ExistUser :one
 SELECT EXISTS(SELECT 1 FROM users WHERE email = $1);
@@ -56,10 +56,7 @@ WHERE email = $1;
 
 -- name: GetUserByEmail :one
 SELECT
-	id,
-	created_at,
-	updated_at,
-	email
+	*
 FROM users
 WHERE email = $1;
 
@@ -98,3 +95,8 @@ DELETE
 FROM chirp
 WHERE id=$1
 AND   user_id=$2;
+
+-- name: UpgradeUser :exec
+UPDATE users
+SET is_chirpy_red=true
+WHERE id=$1;

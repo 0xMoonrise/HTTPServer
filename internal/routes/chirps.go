@@ -2,6 +2,7 @@ package routes
 
 import (
 	"ServerHTTP/internal/auth"
+	db "ServerHTTP/internal/database"
 	"encoding/json"
 	"github.com/google/uuid"
 	"log"

@@ -13,6 +13,7 @@ type ApiConfig struct {
 	FileserverHits atomic.Int32
 	Query          *database.Queries
 	Secret         string
+	ApiKey         string
 }
 
 type Page struct {
@@ -96,6 +97,7 @@ func InitMuxHandlers(m *http.ServeMux, cfg *ApiConfig) {
 	m.HandleFunc("POST /api/chirps", cfg.createChirp)
 	m.HandleFunc("POST /api/login", cfg.login)
 	m.HandleFunc("POST /api/revoke", cfg.revokeToken)
+	m.HandleFunc("POST /api/polka/webhooks", cfg.webhooks)
 	m.HandleFunc("PUT /api/users", cfg.resetPassword)
 	m.HandleFunc("DELETE /api/chirps/{uuid}", cfg.deleteChirp)
 }

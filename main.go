@@ -40,6 +40,7 @@ func main() {
 	dbURL := os.Getenv("DB_URL")
 	SIGN := os.Getenv("SIGNER")
 	addr := os.Getenv("ADDR")
+	apiKey := os.Getenv("POLKA_KEY")
 
 	mux := http.NewServeMux()
 
@@ -58,6 +59,7 @@ func main() {
 		FileserverHits: atomic.Int32{},
 		Query:          dbQueries,
 		Secret:         SIGN,
+		ApiKey:         apiKey,
 	}
 
 	routes.InitMuxHandlers(mux, &cfg)
