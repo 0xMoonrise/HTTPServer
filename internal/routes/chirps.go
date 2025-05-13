@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"robpike.io/filter"
+	"sort"
 )
 
 func (cfg *ApiConfig) createChirp(w http.ResponseWriter, r *http.Request) {
@@ -131,8 +132,9 @@ func (cfg *ApiConfig) getChirps(w http.ResponseWriter, r *http.Request) {
 	}
 
 	authorId, err := uuid.Parse(r.URL.Query().Get("author_id"))
+	sortBy := r.URL.Query().Get("sort")
 
-	if err != nil {
+	if err != nil && authorId != uuid.Nil {
 		log.Println(err)
 		respondWithError(w, http.StatusInternalServerError, "Something went wrong...")
 		return
@@ -142,6 +144,12 @@ func (cfg *ApiConfig) getChirps(w http.ResponseWriter, r *http.Request) {
 		chirps = filter.Choose(chirps, func(c db.Chirp) bool {
 			return c.UserID == authorId
 		}).([]db.Chirp)
+	}
+
+	if sortBy != "desc" {
+		sort.Slice(chirps, func(i, j int) bool { return chirps[i].CreatedAt.Before(chirps[j].CreatedAt) })
+	} else {
+		sort.Slice(chirps, func(i, j int) bool { return chirps[i].CreatedAt.After(chirps[j].CreatedAt) })
 	}
 
 	chrs, err := json.Marshal(chirps)
