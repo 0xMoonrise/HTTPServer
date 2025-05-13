@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"log"
 	"net/http"
+	"robpike.io/filter"
 )
 
 func (cfg *ApiConfig) createChirp(w http.ResponseWriter, r *http.Request) {
@@ -42,22 +43,8 @@ func (cfg *ApiConfig) createChirp(w http.ResponseWriter, r *http.Request) {
 	payload := struct {
 		UserID uuid.UUID `json:"user_id"`
 		Body   string    `json:"body"`
-		Id     uuid.UUID `json:"id"`
 	}{
 		UserID: id,
-	}
-
-	chirpFromDB, err := cfg.Query.CreateChirp(
-		r.Context(),
-		toDBChirp(Chirp{
-			Body:   payload.Body,
-			UserID: payload.UserID,
-		}))
-
-	if err != nil {
-		log.Println(err)
-		respondWithError(w, http.StatusInternalServerError, "Something went wrong...")
-		return
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -72,14 +59,20 @@ func (cfg *ApiConfig) createChirp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	payload.Id = chirpFromDB.ID
+	cfg.Query.CreateChirp(
+		r.Context(),
+		toDBChirp(Chirp{
+			Body:   payload.Body,
+			UserID: payload.UserID,
+		}))
+
 	data, err := json.Marshal(payload)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	w.Write(data)
 
-	log.Printf("Success! the chirp has been created %v", chirpFromDB.ID)
+	log.Printf("Success! the chirp has been created")
 
 }
 
@@ -129,10 +122,26 @@ func (cfg *ApiConfig) getChirpPath(w http.ResponseWriter, r *http.Request) {
 
 func (cfg *ApiConfig) getChirps(w http.ResponseWriter, r *http.Request) {
 
+	var chirps []db.Chirp
 	chirps, err := cfg.Query.GetChirps(r.Context())
 
 	if err != nil {
 		log.Printf("An error has occurred trying to get chirps")
+		return
+	}
+
+	authorId, err := uuid.Parse(r.URL.Query().Get("author_id"))
+
+	if err != nil {
+		log.Println(err)
+		respondWithError(w, http.StatusInternalServerError, "Something went wrong...")
+		return
+	}
+
+	if authorId != uuid.Nil {
+		chirps = filter.Choose(chirps, func(c db.Chirp) bool {
+			return c.UserID == authorId
+		}).([]db.Chirp)
 	}
 
 	chrs, err := json.Marshal(chirps)

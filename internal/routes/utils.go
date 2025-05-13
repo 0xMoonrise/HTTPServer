@@ -34,7 +34,7 @@ type UserRes struct {
 
 func validateChirp(chirp string) (string, error) {
 
-	if len(chirp) != 140 {
+	if len(chirp) >= 140 {
 		return "", errors.New("Error, the length is not allowed.")
 	}
 
